@@ -1,0 +1,20 @@
+package estudo.pessoa.cadastro.controller;
+
+
+import estudo.pessoa.cadastro.model.DadosCadastroCliente;
+import estudo.pessoa.cadastro.service.CadastroService;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/cadastro")
+public class CadastroController {
+
+    @PostMapping
+    public DadosCadastroCliente cadastrar(@RequestBody DadosCadastroCliente request) {
+        return CadastroService.cadastrar(request);
+    }
+
+}
