@@ -11,6 +11,6 @@ public class CadastroService {
 
         String telefoneFormatado = FormatacaoCampo.formatarTelefone(request.getTelefone());
         request.setTelefone(telefoneFormatado);
-        return request;
+        return request; //adicionado
     }
 }
