@@ -1,7 +1,7 @@
 package estudo.pessoa.cadastro.controller;
 
 
-import estudo.pessoa.cadastro.model.DadosCadastroCliente;
+import estudo.pessoa.cadastro.entity.DadosCadastroCliente;
 import estudo.pessoa.cadastro.service.CadastroService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

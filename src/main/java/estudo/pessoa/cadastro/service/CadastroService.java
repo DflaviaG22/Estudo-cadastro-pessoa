@@ -1,6 +1,6 @@
 package estudo.pessoa.cadastro.service;
 
-import estudo.pessoa.cadastro.model.DadosCadastroCliente;
+import estudo.pessoa.cadastro.entity.DadosCadastroCliente;
 import estudo.pessoa.cadastro.utils.FormatacaoCampo;
 
 public class CadastroService {
