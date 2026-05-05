@@ -12,9 +12,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/cadastro")
 public class CadastroController {
 
-    @PostMapping
-    public DadosCadastroCliente cadastrar(@RequestBody DadosCadastroCliente request) {
-        return CadastroService.cadastrar(request);
+    private final CadastroService cadastroService;
+
+    public CadastroController(CadastroService cadastroService) {
+        this.cadastroService = cadastroService;
     }
 
+    @PostMapping
+    public DadosCadastroCliente cadastrar(@RequestBody DadosCadastroCliente request) {
+        return cadastroService.cadastrar(request);
+    }
 }

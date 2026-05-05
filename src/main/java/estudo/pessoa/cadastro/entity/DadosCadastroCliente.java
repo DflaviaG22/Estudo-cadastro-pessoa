@@ -1,27 +1,25 @@
 package estudo.pessoa.cadastro.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "cadastro_pessoa")
 public class DadosCadastroCliente {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
-    @Column
+    @Column(name = "cpf")
     private String cpf;
 
-    @Column
+    @Column(name = "nome_completo")
     private String nomeCompleto;
 
-    @Column
+    @Column(name = "telefone")
     private String telefone;
 
-    @Column
+    @Column(name = "email")
     private String email;
 
     public int getId() {
