@@ -13,5 +13,5 @@ spring:
     hibernate:
       # 'update' cria ou altera as tabelas automaticamente baseado nas suas classes Java
       # 'none' apenas valida se a tabela já existe (mais seguro para quem já criou a tabela manualmente)
-      ddl-auto: update
+      ddl-auto: create
     show-sql: true # Mostra as queries no console para facilitar o seu debug
