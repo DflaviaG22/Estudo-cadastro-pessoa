@@ -2,7 +2,6 @@ spring:
   application:
     name: cadastro
   datasource:
-    # URL de conexão: jdbc:postgresql://<host>:<porta>/<nome_do_banco>
     url: jdbc:postgresql://localhost:5432/postgres
     username: postgres
     password: 34231548Vo*
@@ -11,7 +10,5 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      # 'update' cria ou altera as tabelas automaticamente baseado nas suas classes Java
-      # 'none' apenas valida se a tabela já existe (mais seguro para quem já criou a tabela manualmente)
       ddl-auto: create
-    show-sql: true # Mostra as queries no console para facilitar o seu debug
+    show-sql: true
