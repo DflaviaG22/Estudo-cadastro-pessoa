@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -33,6 +34,10 @@ public class CadastroService {
         preencherEndereco(request, request.getCep());
 
         return cadastroRepository.save(request);
+    }
+
+    public List<CadastroPessoa> listarTodos() {
+        return cadastroRepository.findAll();
     }
 
     public Optional<CadastroPessoa> consultarPorCpf(String cpf) {
