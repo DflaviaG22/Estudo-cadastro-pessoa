@@ -1,11 +1,34 @@
-package estudo.pessoa.cadastro.model;
+package estudo.pessoa.cadastro.entity;
 
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "cadastro_pessoa")
 public class DadosCadastroCliente {
 
-    private String nomeCompleto;
-    private String telefone;
-    private String email;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    @Column(name = "cpf")
     private String cpf;
+
+    @Column(name = "nome_completo")
+    private String nomeCompleto;
+
+    @Column(name = "telefone")
+    private String telefone;
+
+    @Column(name = "email")
+    private String email;
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
 
     public String getNomeCompleto() {
         return nomeCompleto;
