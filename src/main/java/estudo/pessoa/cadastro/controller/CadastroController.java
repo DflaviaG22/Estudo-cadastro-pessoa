@@ -35,9 +35,12 @@ public class CadastroController {
         return cadastroService.listarTodos();
     }
 
-    @GetMapping("/{cpf}")
-    public ResponseEntity<CadastroPessoa> consultarPorCpf(@PathVariable String cpf) {
-        return cadastroService.consultarPorCpf(cpf)
+    @PutMapping("/{cpf}")
+    public ResponseEntity<CadastroPessoa> atualizarPorCpf(
+            @PathVariable String cpf,
+            @RequestBody CadastroPessoa request
+    ) {
+        return cadastroService.atualizarPorCpf(cpf, request)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }

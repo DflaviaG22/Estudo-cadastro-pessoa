@@ -40,9 +40,20 @@ public class CadastroService {
         return cadastroRepository.findAll();
     }
 
-    public Optional<CadastroPessoa> consultarPorCpf(String cpf) {
+    public Optional<CadastroPessoa> atualizarPorCpf(String cpf, CadastroPessoa request) {
         String cpfNumerico = limparCpf(cpf);
-        return cadastroRepository.findByCpfNumerico(cpfNumerico);
+        String cpfFormatado = FormatacaoCampo.formatarCpf(cpfNumerico);
+
+        return cadastroRepository.findByCpfNumerico(cpfNumerico)
+                .map(cadastroExistente -> {
+                    cadastroExistente.setCpf(cpfFormatado);
+                    cadastroExistente.setNomeCompleto(request.getNomeCompleto());
+                    cadastroExistente.setEmail(request.getEmail());
+                    cadastroExistente.setTelefone(FormatacaoCampo.formatarTelefone(request.getTelefone()));
+                    preencherEndereco(cadastroExistente, request.getCep());
+
+                    return cadastroRepository.save(cadastroExistente);
+                });
     }
 
     public boolean deletarPorCpf(String cpf) {
