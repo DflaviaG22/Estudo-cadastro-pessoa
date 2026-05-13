@@ -9,7 +9,7 @@ public class EnderecoViaCepResponse {
     private String estado;
     private String bairro;
     private String ddd;
-    private Boolean erro;
+    private Boolean erro = false;
 
     public String getCep() {
         return cep;

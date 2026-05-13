@@ -1,6 +1,7 @@
 package estudo.pessoa.cadastro.controller;
 
 
+import estudo.pessoa.cadastro.dto.ErrorResponse;
 import estudo.pessoa.cadastro.entity.CadastroPessoa;
 import estudo.pessoa.cadastro.service.CadastroService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -34,6 +35,8 @@ public class CadastroController {
     @PostMapping
     @Operation(summary = "Criar novo cadastro", description = "Cria um novo cadastro de pessoa com validação de CPF e CEP")
     @ApiResponse(responseCode = "200", description = "Cadastro criado com sucesso", content = @Content(schema = @Schema(implementation = CadastroPessoa.class)))
+    @ApiResponse(responseCode = "400", description = "Dados inválidos ou obrigatórios ausentes", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "500", description = "Erro interno do servidor", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     public CadastroPessoa cadastrar(@RequestBody CadastroPessoa request) {
         return cadastroService.cadastrar(request);
     }
@@ -41,6 +44,7 @@ public class CadastroController {
     @GetMapping
     @Operation(summary = "Listar todos os cadastros", description = "Retorna uma lista com todos os cadastros de pessoas")
     @ApiResponse(responseCode = "200", description = "Lista de cadastros retornada com sucesso", content = @Content(schema = @Schema(implementation = CadastroPessoa.class)))
+    @ApiResponse(responseCode = "500", description = "Erro ao listar cadastros", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     public List<CadastroPessoa> listarTodos() {
         return cadastroService.listarTodos();
     }
@@ -48,7 +52,9 @@ public class CadastroController {
     @PutMapping("/{cpf}")
     @Operation(summary = "Atualizar cadastro por CPF", description = "Atualiza os dados de um cadastro existente usando o CPF como identificador")
     @ApiResponse(responseCode = "200", description = "Cadastro atualizado com sucesso", content = @Content(schema = @Schema(implementation = CadastroPessoa.class)))
-    @ApiResponse(responseCode = "404", description = "Cadastro não encontrado")
+    @ApiResponse(responseCode = "400", description = "Dados inválidos", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "404", description = "Cadastro não encontrado", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "500", description = "Erro ao atualizar cadastro", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     public ResponseEntity<CadastroPessoa> atualizarPorCpf(
             @PathVariable String cpf,
             @RequestBody CadastroPessoa request
@@ -61,7 +67,9 @@ public class CadastroController {
     @DeleteMapping("/{cpf}")
     @Operation(summary = "Deletar cadastro por CPF", description = "Remove um cadastro de pessoa usando o CPF como identificador")
     @ApiResponse(responseCode = "204", description = "Cadastro deletado com sucesso")
-    @ApiResponse(responseCode = "404", description = "Cadastro não encontrado")
+    @ApiResponse(responseCode = "400", description = "CPF inválido", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "404", description = "Cadastro não encontrado", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "500", description = "Erro ao deletar cadastro", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     public ResponseEntity<Void> deletarPorCpf(@PathVariable String cpf) {
         boolean deletado = cadastroService.deletarPorCpf(cpf);
 
