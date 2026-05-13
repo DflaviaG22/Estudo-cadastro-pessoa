@@ -42,16 +42,6 @@ public class CadastroController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PutMapping("/{cpf}")
-    public ResponseEntity<CadastroPessoa> atualizarPorCpf(
-            @PathVariable String cpf,
-            @RequestBody CadastroPessoa request
-    ) {
-        return cadastroService.atualizarPorCpf(cpf, request)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
     @DeleteMapping("/{cpf}")
     public ResponseEntity<Void> deletarPorCpf(@PathVariable String cpf) {
         boolean deletado = cadastroService.deletarPorCpf(cpf);
