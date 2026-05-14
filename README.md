@@ -1,338 +1,295 @@
 # Cadastro de Pessoas API
 
-API REST para gerenciamento de cadastros de pessoas com integração ViaCEP para validação e preenchimento automático de endereços.
+API REST para gerenciamento de cadastros de pessoas com integracao ViaCEP para validacao e preenchimento automatico de endereco.
 
 ## Tecnologias
 
-- **Java 17**
-- **Spring Boot 4.0.6**
-- **Spring Data JPA**
-- **PostgreSQL**
-- **OpenFeign** (integração ViaCEP)
-- **SpringDoc OpenAPI** (Swagger UI)
+- Java 17
+- Spring Boot 4.0.6
+- Spring Data JPA
+- PostgreSQL
+- OpenFeign para integracao ViaCEP
+- SpringDoc OpenAPI para Swagger UI
 
 ## Funcionalidades
 
-- ✅ Cadastrar pessoas com validação de CPF
-- ✅ Listar todos os cadastros
-- ✅ Atualizar cadastro por CPF
-- ✅ Deletar cadastro por CPF
-- ✅ Integração automática com ViaCEP para validação e preenchimento de endereço
-- ✅ Formatação automática de CPF e telefone
+- Cadastrar pessoas usando CPF como identificador
+- Listar todos os cadastros
+- Atualizar cadastro por CPF
+- Deletar cadastro por CPF
+- Buscar endereco automaticamente pelo CEP via ViaCEP
+- Retornar endereco em formato de lista
+- Formatar CPF e telefone automaticamente
+- Retornar `409 Conflict` quando o CPF ja estiver cadastrado
 
-## Configuração
+## Configuracao
 
-### Pré-requisitos
+### Pre-requisitos
 
 - Java 17+
 - Maven 3.6+
 - PostgreSQL 12+
 
-### Variáveis de Ambiente
+### application.yaml
 
 Configure o arquivo `src/main/resources/application.yaml`:
 
 ```yaml
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/cadastro_pessoas
-    username: seu_usuario
-    password: sua_senha
+    url: jdbc:postgresql://localhost:5432/postgres
+    username: postgres
+    password: "123456"
+    driver-class-name: org.postgresql.Driver
+
   jpa:
     hibernate:
       ddl-auto: update
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
 ```
 
-### Instalação e Execução
+### Executar
 
 ```bash
-# Compilar o projeto
-mvn clean install
-
-# Executar a aplicação
 mvn spring-boot:run
 ```
 
-A aplicação estará disponível em: `http://localhost:8080`
+A aplicacao fica disponivel em:
 
-## Documentação da API
-
-### Swagger UI
-
-A documentação interativa da API está disponível em:
-
+```text
+http://localhost:8080
 ```
+
+## Documentacao da API
+
+Swagger UI:
+
+```text
 http://localhost:8080/swagger-ui.html
 ```
 
-### OpenAPI JSON
+OpenAPI JSON:
 
-O schema OpenAPI em JSON:
-
-```
+```text
 http://localhost:8080/v3/api-docs
 ```
 
+As anotacoes OpenAPI dos endpoints ficam separadas em `CadastroControllerDocs`, mantendo o `CadastroController` focado apenas nas rotas.
+
 ## Endpoints
 
-### 1. Criar Cadastro
+### Criar cadastro
 
-**POST** `/cadastro`
+`POST /cadastro`
 
-Cria um novo cadastro de pessoa com validação de CPF e CEP.
+Cria um novo cadastro. Envie o `cep`; os demais dados de endereco sao preenchidos automaticamente pelo ViaCEP.
 
-**Request Body:**
+Request:
+
 ```json
 {
-  "nomeCompleto": "João da Silva",
-  "email": "joao@example.com",
-  "cpf": "123.456.789-00",
-  "telefone": "(11) 98765-4321",
-  "cep": "01310-100"
+  "cpf": "98765432100",
+  "nomeCompleto": "Maria Oliveira Santos",
+  "telefone": "21977776666",
+  "email": "maria.santos@email.com",
+  "cep": "30140071"
 }
 ```
 
-**Response (200 OK):**
+Response `200 OK`:
+
 ```json
 {
-  "id": 1,
-  "nomeCompleto": "João da Silva",
-  "email": "joao@example.com",
-  "cpf": "123.456.789-00",
-  "telefone": "(11) 98765-4321",
-  "cep": "01310-100",
-  "logradouro": "Avenida Paulista",
-  "complemento": "",
-  "bairro": "Cerqueira César",
-  "uf": "SP",
-  "estado": "São Paulo",
-  "ddd": "11"
+  "nomeCompleto": "Maria Oliveira Santos",
+  "cpf": "987.654.321-00",
+  "email": "maria.santos@email.com",
+  "telefone": "(21) 97777-6666",
+  "endereco": [
+    {
+      "cep": "30140-071",
+      "logradouro": "Avenida Afonso Pena",
+      "complemento": "",
+      "uf": "MG",
+      "estado": "Minas Gerais",
+      "bairro": "Centro",
+      "ddd": "31"
+    }
+  ]
 }
 ```
 
----
+Response `409 Conflict`, quando o CPF ja existe:
 
-### 2. Listar Todos os Cadastros
+```json
+{
+  "status": 409,
+  "mensagem": "Cpf ja cadastrado",
+  "timestamp": "2026-05-14T20:00:00"
+}
+```
 
-**GET** `/cadastro`
+### Listar cadastros
 
-Retorna uma lista com todos os cadastros de pessoas.
+`GET /cadastro`
 
-**Response (200 OK):**
+Response `200 OK`:
+
 ```json
 [
   {
-    "id": 1,
-    "nomeCompleto": "João da Silva",
-    "email": "joao@example.com",
-    "cpf": "123.456.789-00",
-    "telefone": "(11) 98765-4321",
-    "cep": "01310-100",
-    "logradouro": "Avenida Paulista",
-    "complemento": "",
-    "bairro": "Cerqueira César",
-    "uf": "SP",
-    "estado": "São Paulo",
-    "ddd": "11"
+    "nomeCompleto": "Maria Oliveira Santos",
+    "cpf": "987.654.321-00",
+    "email": "maria.santos@email.com",
+    "telefone": "(21) 97777-6666",
+    "endereco": [
+      {
+        "cep": "30140-071",
+        "logradouro": "Avenida Afonso Pena",
+        "complemento": "",
+        "uf": "MG",
+        "estado": "Minas Gerais",
+        "bairro": "Centro",
+        "ddd": "31"
+      }
+    ]
   }
 ]
 ```
 
----
+### Atualizar cadastro por CPF
 
-### 3. Atualizar Cadastro por CPF
+`PUT /cadastro/{cpf}`
 
-**PUT** `/cadastro/{cpf}`
+Atualiza um cadastro existente usando CPF como identificador. O CPF no path pode ser enviado com ou sem mascara.
 
-Atualiza os dados de um cadastro existente usando o CPF como identificador.
-
-**Path Parameters:**
-- `cpf` (string) - CPF da pessoa (com ou sem formatação)
-
-**Request Body:**
-```json
-{
-  "nomeCompleto": "João da Silva Santos",
-  "email": "joao.santos@example.com",
-  "cpf": "123.456.789-00",
-  "telefone": "(11) 99876-5432",
-  "cep": "01310-100"
-}
-```
-
-**Response (200 OK):**
-```json
-{
-  "id": 1,
-  "nomeCompleto": "João da Silva Santos",
-  "email": "joao.santos@example.com",
-  "cpf": "123.456.789-00",
-  "telefone": "(11) 99876-5432",
-  "cep": "01310-100",
-  "logradouro": "Avenida Paulista",
-  "complemento": "",
-  "bairro": "Cerqueira César",
-  "uf": "SP",
-  "estado": "São Paulo",
-  "ddd": "11"
-}
-```
-
-**Response (404 Not Found):**
-Quando o CPF não existe no banco de dados.
-
----
-
-### 4. Deletar Cadastro por CPF
-
-**DELETE** `/cadastro/{cpf}`
-
-Remove um cadastro de pessoa usando o CPF como identificador.
-
-**Path Parameters:**
-- `cpf` (string) - CPF da pessoa (com ou sem formatação)
-
-**Response (204 No Content):**
-Cadastro deletado com sucesso.
-
-**Response (404 Not Found):**
-Quando o CPF não existe no banco de dados.
-
----
-
-## Validações
-
-### CPF
-
-- Deve ser válido (algoritmo de validação)
-- Será formatado automaticamente como `XXX.XXX.XXX-XX`
-
-### CEP
-
-- Deve conter 8 dígitos
-- Será validado contra a API ViaCEP
-- Se inválido, retorna erro 400 Bad Request
-
-### Email
-
-- Deve ser um email válido
-
-### Telefone
-
-- Será formatado automaticamente como `(XX) XXXXX-XXXX`
-
-## Tratamento de Erros
-
-### 400 Bad Request
-
-Retornado quando:
-- CEP inválido
-- CPF inválido
-- Dados obrigatórios ausentes
+Request:
 
 ```json
 {
-  "timestamp": "2024-05-12T10:30:00Z",
-  "status": 400,
-  "error": "Bad Request",
-  "message": "CEP invalido"
+  "cpf": "98765432100",
+  "nomeCompleto": "Maria Oliveira Santos",
+  "telefone": "21977776666",
+  "email": "maria.santos@email.com",
+  "cep": "20040020"
 }
 ```
 
-### 404 Not Found
-
-Retornado quando o recurso não é encontrado.
+Response `200 OK`:
 
 ```json
 {
-  "timestamp": "2024-05-12T10:30:00Z",
-  "status": 404,
-  "error": "Not Found",
-  "message": "Cadastro não encontrado"
+  "nomeCompleto": "Maria Oliveira Santos",
+  "cpf": "987.654.321-00",
+  "email": "maria.santos@email.com",
+  "telefone": "(21) 97777-6666",
+  "endereco": [
+    {
+      "cep": "20040-020",
+      "logradouro": "Avenida Rio Branco",
+      "complemento": "",
+      "uf": "RJ",
+      "estado": "Rio de Janeiro",
+      "bairro": "Centro",
+      "ddd": "21"
+    }
+  ]
 }
 ```
 
-### 500 Internal Server Error
+Response `404 Not Found`: quando o CPF nao existe.
 
-Erros não previstos no processamento.
+### Deletar cadastro por CPF
 
----
+`DELETE /cadastro/{cpf}`
 
-## Exemplos de Uso
+Remove um cadastro usando CPF como identificador.
 
-### cURL
+Response `204 No Content`: cadastro deletado.
 
-#### Criar cadastro
+Response `404 Not Found`: CPF nao encontrado.
+
+## cURL
+
+### Criar cadastro
+
 ```bash
-curl -X POST http://localhost:8080/cadastro \
+curl -X POST "http://localhost:8080/cadastro" \
   -H "Content-Type: application/json" \
   -d '{
-    "nomeCompleto": "Maria Silva",
-    "email": "maria@example.com",
-    "cpf": "987.654.321-00",
-    "telefone": "(21) 91234-5678",
+    "cpf": "98765432100",
+    "nomeCompleto": "Maria Oliveira Santos",
+    "telefone": "21977776666",
+    "email": "maria.santos@email.com",
+    "cep": "30140071"
+  }'
+```
+
+### Atualizar por CPF
+
+```bash
+curl -X PUT "http://localhost:8080/cadastro/98765432100" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "cpf": "98765432100",
+    "nomeCompleto": "Maria Oliveira Santos",
+    "telefone": "21977776666",
+    "email": "maria.santos@email.com",
     "cep": "20040020"
   }'
 ```
 
-#### Listar todos
+### Listar todos
+
 ```bash
-curl -X GET http://localhost:8080/cadastro
+curl -X GET "http://localhost:8080/cadastro"
 ```
 
-#### Atualizar por CPF
+### Deletar por CPF
+
 ```bash
-curl -X PUT http://localhost:8080/cadastro/987.654.321-00 \
-  -H "Content-Type: application/json" \
-  -d '{
-    "nomeCompleto": "Maria Silva Santos",
-    "email": "maria.santos@example.com",
-    "cpf": "987.654.321-00",
-    "telefone": "(21) 91234-5679",
-    "cep": "20040020"
-  }'
+curl -X DELETE "http://localhost:8080/cadastro/98765432100"
 ```
 
-#### Deletar por CPF
-```bash
-curl -X DELETE http://localhost:8080/cadastro/987.654.321-00
-```
+## Validacoes e regras
 
----
+- CPF deve conter 11 digitos e e usado como chave primaria.
+- CPF e telefone sao formatados automaticamente.
+- CEP deve conter 8 digitos.
+- O endereco e consultado no ViaCEP e retornado em `endereco: []`.
+- Ao cadastrar CPF ja existente, a API retorna `409 Conflict`.
 
-## Estrutura do Projeto
+## Estrutura principal
 
-```
+```text
 src/main/java/estudo/pessoa/cadastro/
-├── CadastroApplication.java          # Classe principal da aplicação
-├── controller/
-│   └── CadastroController.java       # Endpoints da API
-├── service/
-│   └── CadastroService.java          # Lógica de negócio
-├── repository/
-│   └── CadastroRepository.java       # Acesso aos dados
-├── entity/
-│   └── CadastroPessoa.java           # Modelo de dados
+├── CadastroApplication.java
 ├── client/
-│   └── ViaCepClient.java             # Cliente HTTP para ViaCEP
+│   └── ViaCepClient.java
+├── config/
+│   ├── CadastroControllerAdvice.java
+│   ├── JacksonConfig.java
+│   └── OpenApiConfig.java
+├── controller/
+│   ├── CadastroController.java
+│   └── docs/
+│       └── CadastroControllerDocs.java
 ├── dto/
-│   └── EnderecoViaCepResponse.java   # DTO para resposta ViaCEP
+│   ├── CadastroPessoaResponse.java
+│   ├── EnderecoResponse.java
+│   ├── EnderecoViaCepResponse.java
+│   └── ErrorResponse.java
+├── entity/
+│   └── CadastroPessoa.java
+├── exception/
+├── repository/
+│   └── CadastroRepository.java
+├── service/
+│   └── CadastroService.java
 └── utils/
-    ├── FormatacaoCampo.java          # Utilitários de formatação
-    └── ValidadorCpf.java             # Validação de CPF
+    ├── FormatacaoCampo.java
+    └── ValidadorCpf.java
 ```
 
----
+## Observacao sobre banco existente
 
-## Licença
-
-Este projeto está sob a licença MIT.
-
----
-
-## Suporte
-
-Para dúvidas ou issues, abra uma issue no repositório.
+Como o CPF passou a ser a chave primaria, bancos criados com o modelo antigo podem ter registros duplicados. Em ambiente de estudo, o caminho mais simples e recriar a tabela `cadastro_pessoa`.
