@@ -7,10 +7,13 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 
-public interface CadastroRepository extends JpaRepository<CadastroPessoa, Integer> {
+public interface CadastroRepository extends JpaRepository<CadastroPessoa, String> {
 
     Optional<CadastroPessoa> findByCpf(String cpf);
 
     @Query("select cadastro from CadastroPessoa cadastro where replace(replace(cadastro.cpf, '.', ''), '-', '') = :cpf")
     Optional<CadastroPessoa> findByCpfNumerico(@Param("cpf") String cpf);
+
+    @Query("select count(cadastro) from CadastroPessoa cadastro where replace(replace(cadastro.cpf, '.', ''), '-', '') = :cpf")
+    long countByCpfNumerico(@Param("cpf") String cpf);
 }

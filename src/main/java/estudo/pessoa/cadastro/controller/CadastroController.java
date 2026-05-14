@@ -1,6 +1,7 @@
 package estudo.pessoa.cadastro.controller;
 
-
+import estudo.pessoa.cadastro.controller.docs.CadastroControllerDocs;
+import estudo.pessoa.cadastro.dto.CadastroPessoaResponse;
 import estudo.pessoa.cadastro.entity.CadastroPessoa;
 import estudo.pessoa.cadastro.service.CadastroService;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +18,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/cadastro")
-public class CadastroController {
+public class CadastroController implements CadastroControllerDocs {
 
     private final CadastroService cadastroService;
 
@@ -25,33 +26,34 @@ public class CadastroController {
         this.cadastroService = cadastroService;
     }
 
+    @Override
     @PostMapping
-    public CadastroPessoa cadastrar(@RequestBody CadastroPessoa request) {
-        return cadastroService.cadastrar(request);
+    public CadastroPessoaResponse cadastrar(@RequestBody CadastroPessoa request) {
+        return CadastroPessoaResponse.from(cadastroService.cadastrar(request));
     }
 
+    @Override
     @GetMapping
-    public List<CadastroPessoa> listarTodos() {
-        return cadastroService.listarTodos();
+    public List<CadastroPessoaResponse> listarTodos() {
+        return cadastroService.listarTodos()
+                .stream()
+                .map(CadastroPessoaResponse::from)
+                .toList();
     }
 
-    @GetMapping("/{cpf}")
-    public ResponseEntity<CadastroPessoa> consultarPorCpf(@PathVariable String cpf) {
-        return cadastroService.consultarPorCpf(cpf)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
+    @Override
     @PutMapping("/{cpf}")
-    public ResponseEntity<CadastroPessoa> atualizarPorCpf(
+    public ResponseEntity<CadastroPessoaResponse> atualizarPorCpf(
             @PathVariable String cpf,
             @RequestBody CadastroPessoa request
     ) {
         return cadastroService.atualizarPorCpf(cpf, request)
+                .map(CadastroPessoaResponse::from)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @Override
     @DeleteMapping("/{cpf}")
     public ResponseEntity<Void> deletarPorCpf(@PathVariable String cpf) {
         boolean deletado = cadastroService.deletarPorCpf(cpf);

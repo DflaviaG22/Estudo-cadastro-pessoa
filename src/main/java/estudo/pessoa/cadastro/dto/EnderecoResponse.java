@@ -1,75 +1,38 @@
-package estudo.pessoa.cadastro.entity;
+package estudo.pessoa.cadastro.dto;
 
-import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import estudo.pessoa.cadastro.entity.CadastroPessoa;
 
-@Entity
-@Table(name = "cadastro_pessoa")
-public class CadastroPessoa {
+@JsonPropertyOrder({
+    "cep",
+    "logradouro",
+    "bairro",
+    "complemento",
+    "estado",
+    "endereco",
+    "uf",
+    "ddd"
+})
+public class EnderecoResponse {
 
-    @Id
-    @Column(name = "cpf")
-    private String cpf;
-
-    @Column(name = "nome_completo")
-    private String nomeCompleto;
-
-    @Column(name = "telefone")
-    private String telefone;
-
-    @Column(name = "email")
-    private String email;
-
-    @Column(name = "cep")
     private String cep;
-
-    @Column(name = "logradouro")
     private String logradouro;
-
-    @Column(name = "complemento")
     private String complemento;
-
-    @Column(name = "uf")
     private String uf;
-
-    @Column(name = "estado")
     private String estado;
-
-    @Column(name = "bairro")
     private String bairro;
-
-    @Column(name = "ddd")
     private String ddd;
 
-    public String getNomeCompleto() {
-        return nomeCompleto;
-    }
-
-    public void setNomeCompleto(String nomeCompleto) {
-        this.nomeCompleto = nomeCompleto;
-    }
-
-    public String getTelefone() {
-        return telefone;
-    }
-
-    public void setTelefone(String telefone) {
-        this.telefone = telefone;
-    }
-
-    public String getEmail(){
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getCpf(){
-        return cpf;
-    }
-
-    public void setCpf(String cpf) {
-        this.cpf = cpf;
+    public static EnderecoResponse from(CadastroPessoa cadastroPessoa) {
+        EnderecoResponse response = new EnderecoResponse();
+        response.setCep(cadastroPessoa.getCep());
+        response.setLogradouro(cadastroPessoa.getLogradouro());
+        response.setComplemento(cadastroPessoa.getComplemento());
+        response.setUf(cadastroPessoa.getUf());
+        response.setEstado(cadastroPessoa.getEstado());
+        response.setBairro(cadastroPessoa.getBairro());
+        response.setDdd(cadastroPessoa.getDdd());
+        return response;
     }
 
     public String getCep() {
@@ -128,4 +91,3 @@ public class CadastroPessoa {
         this.ddd = ddd;
     }
 }
-
