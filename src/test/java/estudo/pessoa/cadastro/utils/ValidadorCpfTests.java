@@ -3,72 +3,37 @@ package estudo.pessoa.cadastro.utils;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@DisplayName("Testes de Validação de CPF")
+@DisplayName("Testes de validacao de CPF")
 class ValidadorCpfTests {
 
-	@Test
-	@DisplayName("Deve validar CPF com formato correto")
-	void testValidarCpfComFormato() {
-		boolean resultado = ValidadorCpf.validarCpf("123.456.789-00");
-		
-		assertNotNull(resultado);
-	}
+    @Test
+    @DisplayName("Deve validar CPF correto com e sem mascara")
+    void testValidarCpfValido() {
+        assertTrue(ValidadorCpf.validarCpf("529.982.247-25"));
+        assertTrue(ValidadorCpf.validarCpf("52998224725"));
+    }
 
-	@Test
-	@DisplayName("Deve validar CPF sem formatação")
-	void testValidarCpfSemFormatacao() {
-		boolean resultado = ValidadorCpf.validarCpf("12345678900");
-		
-		assertNotNull(resultado);
-	}
+    @Test
+    @DisplayName("Deve rejeitar CPF com digitos verificadores invalidos")
+    void testValidarCpfInvalido() {
+        assertFalse(ValidadorCpf.validarCpf("123.456.789-00"));
+    }
 
-	@Test
-	@DisplayName("Deve validar CPF com caracteres especiais")
-	void testValidarCpfComEspeciais() {
-		boolean resultado = ValidadorCpf.validarCpf("123-456-789-00");
-		
-		assertNotNull(resultado);
-	}
+    @Test
+    @DisplayName("Deve rejeitar CPF nulo ou vazio")
+    void testValidarCpfNuloOuVazio() {
+        assertFalse(ValidadorCpf.validarCpf(null));
+        assertFalse(ValidadorCpf.validarCpf(""));
+    }
 
-	@Test
-	@DisplayName("Deve lidar com CPF nulo")
-	void testValidarCpfNulo() {
-		assertDoesNotThrow(() -> {
-			ValidadorCpf.validarCpf(null);
-		});
-	}
-
-	@Test
-	@DisplayName("Deve lidar com CPF vazio")
-	void testValidarCpfVazio() {
-		assertDoesNotThrow(() -> {
-			ValidadorCpf.validarCpf("");
-		});
-	}
-
-	@Test
-	@DisplayName("Deve retornar false para CPF com menos de 11 dígitos")
-	void testValidarCpfMenor() {
-		ValidadorCpf.validarCpf("123456789");
-	}
-
-	@Test
-	@DisplayName("Deve retornar false para CPF com mais de 11 dígitos")
-	void testValidarCpfMaior() {
-		ValidadorCpf.validarCpf("123456789001234");
-	}
-
-	@Test
-	@DisplayName("Deve validar múltiplos CPFs")
-	void testValidarMultiplosCpfs() {
-		boolean resultado1 = ValidadorCpf.validarCpf("123.456.789-00");
-		boolean resultado2 = ValidadorCpf.validarCpf("987.654.321-00");
-		boolean resultado3 = ValidadorCpf.validarCpf("111.222.333-44");
-
-		assertNotNull(resultado1);
-		assertNotNull(resultado2);
-		assertNotNull(resultado3);
-	}
+    @Test
+    @DisplayName("Deve rejeitar CPF com tamanho invalido ou digitos repetidos")
+    void testValidarCpfComTamanhoInvalidoOuRepetido() {
+        assertFalse(ValidadorCpf.validarCpf("123456789"));
+        assertFalse(ValidadorCpf.validarCpf("123456789001234"));
+        assertFalse(ValidadorCpf.validarCpf("111.111.111-11"));
+    }
 }

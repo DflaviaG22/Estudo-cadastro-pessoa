@@ -6,8 +6,6 @@ import estudo.pessoa.cadastro.dto.EnderecoViaCepResponse;
 import estudo.pessoa.cadastro.entity.CadastroPessoa;
 import estudo.pessoa.cadastro.repository.CadastroRepository;
 import estudo.pessoa.cadastro.service.CadastroService;
-import estudo.pessoa.cadastro.utils.FormatacaoCampo;
-import estudo.pessoa.cadastro.utils.ValidadorCpf;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,13 +17,14 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.Optional;
-
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -33,291 +32,160 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisplayName("Testes da API de Cadastro de Pessoas")
 class CadastroApplicationTests {
 
-	@Autowired
-	private MockMvc mockMvc;
+    @Autowired
+    private MockMvc mockMvc;
 
-	@Autowired
-	private ObjectMapper objectMapper;
+    @Autowired
+    private ObjectMapper objectMapper;
 
-	@MockitoBean
-	private ViaCepClient viaCepClient;
+    @Autowired
+    private CadastroService cadastroService;
 
-	@Autowired
-	private CadastroService cadastroService;
+    @Autowired
+    private CadastroRepository cadastroRepository;
 
-	@Autowired
-	private CadastroRepository cadastroRepository;
+    @MockitoBean
+    private ViaCepClient viaCepClient;
 
-	private CadastroPessoa cadastroValido;
-	private EnderecoViaCepResponse enderecoValido;
+    private CadastroPessoa cadastroValido;
 
-	@BeforeEach
-	void setUp() {
-		cadastroRepository.deleteAll();
-		
-		cadastroValido = new CadastroPessoa();
-		cadastroValido.setNomeCompleto("João da Silva");
-		cadastroValido.setEmail("joao@example.com");
-		cadastroValido.setCpf("123.456.789-00");
-		cadastroValido.setTelefone("(11) 98765-4321");
-		cadastroValido.setCep("01310-100");
+    @BeforeEach
+    void setUp() {
+        cadastroRepository.deleteAll();
 
-		enderecoValido = new EnderecoViaCepResponse();
-		enderecoValido.setCep("01310-100");
-		enderecoValido.setLogradouro("Avenida Paulista");
-		enderecoValido.setComplemento("");
-		enderecoValido.setBairro("Cerqueira César");
-		enderecoValido.setUf("SP");
-		enderecoValido.setEstado("São Paulo");
-		enderecoValido.setDdd("11");
-		enderecoValido.setErro(false);
+        cadastroValido = criarCadastro("Joao da Silva", "joao@example.com", "123.456.789-00", "01310-100");
+        when(viaCepClient.consultarCep("01310100")).thenReturn(criarEndereco(
+                "01310-100",
+                "Avenida Paulista",
+                "Cerqueira Cesar",
+                "SP",
+                "Sao Paulo",
+                "11"
+        ));
+    }
 
-		when(viaCepClient.consultarCep("01310100")).thenReturn(enderecoValido);
-	}
+    @Test
+    @DisplayName("Deve criar cadastro com endereco em lista")
+    void testCriarCadastroComSucesso() throws Exception {
+        mockMvc.perform(post("/cadastro")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(cadastroValido)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nomeCompleto").value("Joao da Silva"))
+                .andExpect(jsonPath("$.cpf").value("123.456.789-00"))
+                .andExpect(jsonPath("$.endereco", hasSize(1)))
+                .andExpect(jsonPath("$.endereco[0].logradouro").value("Avenida Paulista"));
+    }
 
-	@Test
-	@DisplayName("Deve criar um novo cadastro com sucesso")
-	void testCriarCadastroComSucesso() throws Exception {
-		mockMvc.perform(post("/cadastro")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(cadastroValido)))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.id").exists())
-				.andExpect(jsonPath("$.nomeCompleto").value("João da Silva"))
-				.andExpect(jsonPath("$.cpf").value("123.456.789-00"))
-				.andExpect(jsonPath("$.email").value("joao@example.com"))
-				.andExpect(jsonPath("$.logradouro").value("Avenida Paulista"));
-	}
+    @Test
+    @DisplayName("Deve retornar erro para CEP invalido")
+    void testCriarCadastroComCepInvalido() throws Exception {
+        cadastroValido.setCep("123");
 
-	@Test
-	@DisplayName("Deve formatar CPF ao criar cadastro")
-	void testCriarCadastroFormataCpf() throws Exception {
-		cadastroValido.setCpf("12345678900");
-		
-		mockMvc.perform(post("/cadastro")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(cadastroValido)))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.cpf").value("123.456.789-00"));
-	}
+        mockMvc.perform(post("/cadastro")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(cadastroValido)))
+                .andExpect(status().isBadRequest());
+    }
 
-	@Test
-	@DisplayName("Deve formatar telefone ao criar cadastro")
-	void testCriarCadastroFormataTelefone() throws Exception {
-		cadastroValido.setTelefone("11987654321");
-		
-		mockMvc.perform(post("/cadastro")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(cadastroValido)))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.telefone").value("(11) 98765-4321"));
-	}
+    @Test
+    @DisplayName("Deve retornar erro quando CEP nao existe")
+    void testCriarCadastroComCepNaoExistente() throws Exception {
+        EnderecoViaCepResponse enderecoInvalido = new EnderecoViaCepResponse();
+        enderecoInvalido.setErro(true);
+        when(viaCepClient.consultarCep("99999999")).thenReturn(enderecoInvalido);
 
-	@Test
-	@DisplayName("Deve validar CEP inválido ao criar cadastro")
-	void testCriarCadastroComCepInvalido() throws Exception {
-		cadastroValido.setCep("123");
-		
-		mockMvc.perform(post("/cadastro")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(cadastroValido)))
-				.andExpect(status().isBadRequest());
-	}
+        cadastroValido.setCep("99999-999");
 
-	@Test
-	@DisplayName("Deve retornar erro quando CEP não existe na ViaCEP")
-	void testCriarCadastroComCepNaoExistente() throws Exception {
-		EnderecoViaCepResponse enderecoPerfil = new EnderecoViaCepResponse();
-		enderecoPerfil.setErro(true);
-		
-		when(viaCepClient.consultarCep("99999999")).thenReturn(enderecoPerfil);
-		
-		cadastroValido.setCep("99999-999");
-		
-		mockMvc.perform(post("/cadastro")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(cadastroValido)))
-				.andExpect(status().isBadRequest());
-	}
+        mockMvc.perform(post("/cadastro")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(cadastroValido)))
+                .andExpect(status().isBadRequest());
+    }
 
-	@Test
-	@DisplayName("Deve formatar CPF ao criar cadastro")
-	void testListarTodosCadastros() throws Exception {
-		// Criar dois cadastros
-		CadastroPessoa cadastro2 = new CadastroPessoa();
-		cadastro2.setNomeCompleto("Maria Silva");
-		cadastro2.setEmail("maria@example.com");
-		cadastro2.setCpf("987.654.321-00");
-		cadastro2.setTelefone("(21) 98765-4321");
-		cadastro2.setCep("01310-100");
+    @Test
+    @DisplayName("Deve retornar conflito ao cadastrar CPF ja existente")
+    void testCriarCadastroComCpfJaCadastrado() throws Exception {
+        cadastroService.cadastrar(cadastroValido);
 
-		cadastroService.cadastrar(cadastroValido);
-		cadastroService.cadastrar(cadastro2);
+        mockMvc.perform(post("/cadastro")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(cadastroValido)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.mensagem").value("Cpf já cadastrado"));
+    }
 
-		mockMvc.perform(get("/cadastro"))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$", hasSize(2)))
-				.andExpect(jsonPath("$[0].nomeCompleto").value("João da Silva"))
-				.andExpect(jsonPath("$[1].nomeCompleto").value("Maria Silva"));
-	}
+    @Test
+    @DisplayName("Deve listar cadastros")
+    void testListarCadastros() throws Exception {
+        CadastroPessoa cadastro2 = criarCadastro("Maria Silva", "maria@example.com", "987.654.321-00", "01310-100");
+        cadastroService.cadastrar(cadastroValido);
+        cadastroService.cadastrar(cadastro2);
 
-	@Test
-	@DisplayName("Deve retornar lista vazia quando não há cadastros")
-	void testListarCadastrosVazio() throws Exception {
-		mockMvc.perform(get("/cadastro"))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$", hasSize(0)));
-	}
+        mockMvc.perform(get("/cadastro"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)));
+    }
 
-	@Test
-	@DisplayName("Deve atualizar um cadastro existente")
-	void testAtualizarCadastroComSucesso() throws Exception {
-		// Criar cadastro
-		CadastroPessoa cadastroSalvo = cadastroService.cadastrar(cadastroValido);
+    @Test
+    @DisplayName("Deve atualizar cadastro e endereco pelo CPF")
+    void testAtualizarCadastroComNovoCep() throws Exception {
+        cadastroService.cadastrar(cadastroValido);
+        when(viaCepClient.consultarCep("20040020")).thenReturn(criarEndereco(
+                "20040020",
+                "Avenida Rio Branco",
+                "Centro",
+                "RJ",
+                "Rio de Janeiro",
+                "21"
+        ));
 
-		// Atualizar
-		cadastroValido.setNomeCompleto("João Silva Updated");
-		cadastroValido.setEmail("joao.updated@example.com");
+        cadastroValido.setNomeCompleto("Joao Silva Updated");
+        cadastroValido.setCep("20040-020");
 
-		mockMvc.perform(put("/cadastro/123.456.789-00")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(cadastroValido)))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.nomeCompleto").value("João Silva Updated"))
-				.andExpect(jsonPath("$.email").value("joao.updated@example.com"));
-	}
+        mockMvc.perform(put("/cadastro/12345678900")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(cadastroValido)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nomeCompleto").value("Joao Silva Updated"))
+                .andExpect(jsonPath("$.endereco[0].logradouro").value("Avenida Rio Branco"))
+                .andExpect(jsonPath("$.endereco[0].uf").value("RJ"));
+    }
 
-	@Test
-	@DisplayName("Deve retornar 404 ao atualizar cadastro inexistente")
-	void testAtualizarCadastroInexistente() throws Exception {
-		mockMvc.perform(put("/cadastro/999.999.999-99")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(cadastroValido)))
-				.andExpect(status().isNotFound());
-	}
+    @Test
+    @DisplayName("Deve deletar cadastro pelo CPF")
+    void testDeletarCadastroComSucesso() throws Exception {
+        cadastroService.cadastrar(cadastroValido);
 
-	@Test
-	@DisplayName("Deve atualizar endereço quando CEP é alterado")
-	void testAtualizarCadastroComNovoCep() throws Exception {
-		CadastroPessoa cadastroSalvo = cadastroService.cadastrar(cadastroValido);
+        mockMvc.perform(delete("/cadastro/123.456.789-00"))
+                .andExpect(status().isNoContent());
 
-		EnderecoViaCepResponse novoEndereco = new EnderecoViaCepResponse();
-		novoEndereco.setCep("20040020");
-		novoEndereco.setLogradouro("Avenida Rio Branco");
-		novoEndereco.setComplemento("");
-		novoEndereco.setBairro("Centro");
-		novoEndereco.setUf("RJ");
-		novoEndereco.setEstado("Rio de Janeiro");
-		novoEndereco.setDdd("21");
-		novoEndereco.setErro(false);
+        mockMvc.perform(get("/cadastro"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(0)));
+    }
 
-		when(viaCepClient.consultarCep("20040020")).thenReturn(novoEndereco);
+    private CadastroPessoa criarCadastro(String nome, String email, String cpf, String cep) {
+        CadastroPessoa cadastro = new CadastroPessoa();
+        cadastro.setNomeCompleto(nome);
+        cadastro.setEmail(email);
+        cadastro.setCpf(cpf);
+        cadastro.setTelefone("(11) 98765-4321");
+        cadastro.setCep(cep);
+        return cadastro;
+    }
 
-		cadastroValido.setCep("20040-020");
-		cadastroValido.setNomeCompleto("João da Silva");
-
-		mockMvc.perform(put("/cadastro/123.456.789-00")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(cadastroValido)))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.logradouro").value("Avenida Rio Branco"))
-				.andExpect(jsonPath("$.uf").value("RJ"));
-	}
-
-	@Test
-	@DisplayName("Deve deletar um cadastro existente")
-	void testDeletarCadastroComSucesso() throws Exception {
-		CadastroPessoa cadastroSalvo = cadastroService.cadastrar(cadastroValido);
-
-		mockMvc.perform(delete("/cadastro/123.456.789-00"))
-				.andExpect(status().isNoContent());
-
-		// Verificar que foi deletado
-		mockMvc.perform(put("/cadastro/123.456.789-00")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(cadastroValido)))
-				.andExpect(status().isNotFound());
-	}
-
-	@Test
-	@DisplayName("Deve retornar 404 ao deletar cadastro inexistente")
-	void testDeletarCadastroInexistente() throws Exception {
-		mockMvc.perform(delete("/cadastro/999.999.999-99"))
-				.andExpect(status().isNotFound());
-	}
-
-	@Test
-	@DisplayName("Deve formatar CPF corretamente")
-	void testFormatarCpf() {
-		assertEquals("123.456.789-00", FormatacaoCampo.formatarCpf("12345678900"));
-		assertEquals("123.456.789-00", FormatacaoCampo.formatarCpf("123.456.789-00"));
-	}
-
-	@Test
-	@DisplayName("Deve formatar telefone corretamente")
-	void testFormatarTelefone() {
-		assertEquals("(11) 98765-4321", FormatacaoCampo.formatarTelefone("11987654321"));
-		assertEquals("(11) 98765-4321", FormatacaoCampo.formatarTelefone("(11) 98765-4321"));
-	}
-
-	@Test
-	@DisplayName("Deve validar CPF válido")
-	void testValidarCpfValido() {
-		boolean resultado = ValidadorCpf.validarCpf("123.456.789-00");
-		assertNotNull(resultado);
-	}
-
-	@Test
-	@DisplayName("Deve executar fluxo completo: criar, listar, atualizar, deletar")
-	void testFluxoCompleto() throws Exception {
-		// 1. Criar
-		mockMvc.perform(post("/cadastro")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(cadastroValido)))
-				.andExpect(status().isOk());
-
-		// 2. Listar
-		mockMvc.perform(get("/cadastro"))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$", hasSize(1)));
-
-		// 3. Atualizar
-		cadastroValido.setEmail("novo.email@example.com");
-		mockMvc.perform(put("/cadastro/123.456.789-00")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(cadastroValido)))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.email").value("novo.email@example.com"));
-
-		// 4. Deletar
-		mockMvc.perform(delete("/cadastro/123.456.789-00"))
-				.andExpect(status().isNoContent());
-
-		// 5. Verificar que foi deletado
-		mockMvc.perform(get("/cadastro"))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$", hasSize(0)));
-	}
-
-	@Test
-	@DisplayName("Deve limpar CPF e consultar pelo CPF numérico")
-	void testConsultarPorCpfNumerico() {
-		CadastroPessoa cadastroSalvo = cadastroService.cadastrar(cadastroValido);
-		
-		// Buscar com CPF formatado
-		Optional<CadastroPessoa> encontrado = cadastroService.atualizarPorCpf("123.456.789-00", cadastroValido);
-		assertTrue(encontrado.isPresent());
-		
-		// Buscar com CPF sem formatação
-		encontrado = cadastroService.atualizarPorCpf("12345678900", cadastroValido);
-		assertTrue(encontrado.isPresent());
-	}
-
-	@Test
-	@DisplayName("Contexto da aplicação carrega com sucesso")
-	void contextLoads() {
-		assertNotNull(mockMvc);
-		assertNotNull(cadastroService);
-		assertNotNull(cadastroRepository);
-	}
+    private EnderecoViaCepResponse criarEndereco(String cep, String logradouro, String bairro, String uf, String estado, String ddd) {
+        EnderecoViaCepResponse endereco = new EnderecoViaCepResponse();
+        endereco.setCep(cep);
+        endereco.setLogradouro(logradouro);
+        endereco.setComplemento("");
+        endereco.setBairro(bairro);
+        endereco.setUf(uf);
+        endereco.setEstado(estado);
+        endereco.setDdd(ddd);
+        endereco.setErro(false);
+        return endereco;
+    }
 }

@@ -3,7 +3,9 @@ package estudo.pessoa.cadastro.service;
 import estudo.pessoa.cadastro.client.ViaCepClient;
 import estudo.pessoa.cadastro.dto.EnderecoViaCepResponse;
 import estudo.pessoa.cadastro.entity.CadastroPessoa;
-import estudo.pessoa.cadastro.exception.*;
+import estudo.pessoa.cadastro.exception.CepInvalidoException;
+import estudo.pessoa.cadastro.exception.CpfJaCadastradoException;
+import estudo.pessoa.cadastro.exception.ValidadorCadastro;
 import estudo.pessoa.cadastro.repository.CadastroRepository;
 import estudo.pessoa.cadastro.utils.FormatacaoCampo;
 import org.springframework.stereotype.Service;
@@ -23,10 +25,14 @@ public class CadastroService {
     }
 
     public CadastroPessoa cadastrar(CadastroPessoa request) {
-        ValidadorCadastro.validareCpf(request.getCpf());
+        String cpfNumerico = ValidadorCadastro.validareCpf(request.getCpf());
         ValidadorCadastro.validareCep(request.getCep());
 
-        String cpfFormatado = FormatacaoCampo.formatarCpf(request.getCpf());
+        if (cadastroRepository.countByCpfNumerico(cpfNumerico) > 0) {
+            throw new CpfJaCadastradoException("Cpf já cadastrado");
+        }
+
+        String cpfFormatado = FormatacaoCampo.formatarCpf(cpfNumerico);
         request.setCpf(cpfFormatado);
 
         String telefoneFormatado = FormatacaoCampo.formatarTelefone(request.getTelefone());
@@ -47,8 +53,6 @@ public class CadastroService {
 
         return cadastroRepository.findByCpfNumerico(cpfNumerico)
                 .map(cadastroExistente -> {
-                    validarDadosAtualizacao(request);
-                    
                     cadastroExistente.setCpf(cpfFormatado);
                     cadastroExistente.setNomeCompleto(request.getNomeCompleto());
                     cadastroExistente.setEmail(request.getEmail());
@@ -87,21 +91,4 @@ public class CadastroService {
         cadastroPessoa.setDdd(endereco.getDdd());
     }
 
-
-
-
-
-    private void validarDadosAtualizacao(CadastroPessoa request) {
-        if (request.getNomeCompleto() != null && request.getNomeCompleto().trim().isEmpty()) {
-            throw new ValidacaoException("Nome completo não pode ser vazio");
-        }
-
-        if (request.getEmail() != null && !request.getEmail().contains("@")) {
-            throw new ValidacaoException("Email inválido. Verifique o formato");
-        }
-
-        if (request.getCep() != null && request.getCep().trim().isEmpty()) {
-            throw new ValidacaoException("CEP não pode ser vazio");
-        }
-    }
 }

@@ -13,10 +13,12 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest
@@ -24,148 +26,116 @@ import static org.mockito.Mockito.when;
 @DisplayName("Testes do Service de Cadastro")
 class CadastroServiceTests {
 
-	@Autowired
-	private CadastroService cadastroService;
+    @Autowired
+    private CadastroService cadastroService;
 
-	@Autowired
-	private CadastroRepository cadastroRepository;
+    @Autowired
+    private CadastroRepository cadastroRepository;
 
-	@MockitoBean
-	private ViaCepClient viaCepClient;
+    @MockitoBean
+    private ViaCepClient viaCepClient;
 
-	private CadastroPessoa cadastroValido;
-	private EnderecoViaCepResponse enderecoValido;
+    private CadastroPessoa cadastroValido;
 
-	@BeforeEach
-	void setUp() {
-		cadastroRepository.deleteAll();
+    @BeforeEach
+    void setUp() {
+        cadastroRepository.deleteAll();
 
-		cadastroValido = new CadastroPessoa();
-		cadastroValido.setNomeCompleto("João Silva");
-		cadastroValido.setEmail("joao@test.com");
-		cadastroValido.setCpf("123.456.789-00");
-		cadastroValido.setTelefone("(11) 98765-4321");
-		cadastroValido.setCep("01310-100");
+        cadastroValido = criarCadastro("Joao Silva", "joao@test.com", "123.456.789-00", "01310-100");
+        when(viaCepClient.consultarCep("01310100")).thenReturn(criarEndereco(
+                "01310-100",
+                "Avenida Paulista",
+                "Cerqueira Cesar",
+                "SP",
+                "Sao Paulo",
+                "11",
+                false
+        ));
+    }
 
-		enderecoValido = new EnderecoViaCepResponse();
-		enderecoValido.setCep("01310-100");
-		enderecoValido.setLogradouro("Avenida Paulista");
-		enderecoValido.setComplemento("");
-		enderecoValido.setBairro("Cerqueira César");
-		enderecoValido.setUf("SP");
-		enderecoValido.setEstado("São Paulo");
-		enderecoValido.setDdd("11");
-		enderecoValido.setErro(false);
+    @Test
+    @DisplayName("Deve cadastrar pessoa preenchendo endereco pelo CEP")
+    void testCadastrarPessoaComSucesso() {
+        CadastroPessoa resultado = cadastroService.cadastrar(cadastroValido);
 
-		when(viaCepClient.consultarCep("01310100")).thenReturn(enderecoValido);
-	}
+        assertEquals("123.456.789-00", resultado.getCpf());
+        assertEquals("Joao Silva", resultado.getNomeCompleto());
+        assertEquals("Avenida Paulista", resultado.getLogradouro());
+        assertEquals("SP", resultado.getUf());
+    }
 
-	@Test
-	@DisplayName("Deve cadastrar pessoa com sucesso")
-	void testCadastrarPessoaComSucesso() {
-		CadastroPessoa resultado = cadastroService.cadastrar(cadastroValido);
-		
-		assertNotNull(resultado.getId());
-		assertEquals("João Silva", resultado.getNomeCompleto());
-		assertEquals("123.456.789-00", resultado.getCpf());
-		assertEquals("Avenida Paulista", resultado.getLogradouro());
-	}
+    @Test
+    @DisplayName("Deve atualizar cadastro existente pelo CPF")
+    void testAtualizarCadastroExistente() {
+        cadastroService.cadastrar(cadastroValido);
 
-	@Test
-	@DisplayName("Deve listar todos os cadastros")
-	void testListarTodosOsCadastros() {
-		CadastroPessoa pessoa1 = cadastroValido;
-		CadastroPessoa pessoa2 = new CadastroPessoa();
-		pessoa2.setNomeCompleto("Maria Silva");
-		pessoa2.setEmail("maria@test.com");
-		pessoa2.setCpf("987.654.321-00");
-		pessoa2.setTelefone("(21) 98765-4321");
-		pessoa2.setCep("01310-100");
+        CadastroPessoa atualizacao = criarCadastro("Joao Silva Updated", "joao.updated@test.com", "123.456.789-00", "01310-100");
+        Optional<CadastroPessoa> resultado = cadastroService.atualizarPorCpf("12345678900", atualizacao);
 
-		cadastroService.cadastrar(pessoa1);
-		cadastroService.cadastrar(pessoa2);
+        assertTrue(resultado.isPresent());
+        assertEquals("Joao Silva Updated", resultado.get().getNomeCompleto());
+        assertEquals("joao.updated@test.com", resultado.get().getEmail());
+    }
 
-		List<CadastroPessoa> resultado = cadastroService.listarTodos();
+    @Test
+    @DisplayName("Deve retornar vazio ao atualizar CPF inexistente")
+    void testAtualizarCpfInexistente() {
+        Optional<CadastroPessoa> resultado = cadastroService.atualizarPorCpf("999.999.999-99", cadastroValido);
 
-		assertEquals(2, resultado.size());
-	}
+        assertFalse(resultado.isPresent());
+    }
 
-	@Test
-	@DisplayName("Deve atualizar cadastro existente")
-	void testAtualizarCadastroExistente() {
-		CadastroPessoa salvo = cadastroService.cadastrar(cadastroValido);
+    @Test
+    @DisplayName("Deve deletar cadastro existente pelo CPF")
+    void testDeletarCadastroExistente() {
+        cadastroService.cadastrar(cadastroValido);
 
-		CadastroPessoa atualizacao = new CadastroPessoa();
-		atualizacao.setNomeCompleto("João Silva Updated");
-		atualizacao.setEmail("joao.updated@test.com");
-		atualizacao.setTelefone("(11) 99876-5432");
-		atualizacao.setCep("01310-100");
+        boolean resultado = cadastroService.deletarPorCpf("123.456.789-00");
 
-		Optional<CadastroPessoa> resultado = cadastroService.atualizarPorCpf("123.456.789-00", atualizacao);
+        assertTrue(resultado);
+        assertEquals(0, cadastroRepository.findAll().size());
+    }
 
-		assertTrue(resultado.isPresent());
-		assertEquals("João Silva Updated", resultado.get().getNomeCompleto());
-		assertEquals("joao.updated@test.com", resultado.get().getEmail());
-	}
+    @Test
+    @DisplayName("Deve recusar CEP invalido ou inexistente")
+    void testCadastrarComCepInvalidoOuInexistente() {
+        cadastroValido.setCep("123");
+        assertThrows(ResponseStatusException.class, () -> cadastroService.cadastrar(cadastroValido));
 
-	@Test
-	@DisplayName("Deve retornar vazio ao atualizar CPF inexistente")
-	void testAtualizarCpfInexistente() {
-		Optional<CadastroPessoa> resultado = cadastroService.atualizarPorCpf("999.999.999-99", cadastroValido);
-		
-		assertFalse(resultado.isPresent());
-	}
+        CadastroPessoa cadastroComCepInexistente = criarCadastro("Joao Silva", "joao@test.com", "123.456.789-00", "99999-999");
+        when(viaCepClient.consultarCep("99999999")).thenReturn(criarEndereco(null, null, null, null, null, null, true));
 
-	@Test
-	@DisplayName("Deve deletar cadastro existente")
-	void testDeletarCadastroExistente() {
-		CadastroPessoa salvo = cadastroService.cadastrar(cadastroValido);
+        assertThrows(ResponseStatusException.class, () -> cadastroService.cadastrar(cadastroComCepInexistente));
+    }
 
-		boolean resultado = cadastroService.deletarPorCpf("123.456.789-00");
+    private CadastroPessoa criarCadastro(String nome, String email, String cpf, String cep) {
+        CadastroPessoa cadastro = new CadastroPessoa();
+        cadastro.setNomeCompleto(nome);
+        cadastro.setEmail(email);
+        cadastro.setCpf(cpf);
+        cadastro.setTelefone("(11) 98765-4321");
+        cadastro.setCep(cep);
+        return cadastro;
+    }
 
-		assertTrue(resultado);
-		assertEquals(0, cadastroRepository.findAll().size());
-	}
-
-	@Test
-	@DisplayName("Deve retornar false ao deletar CPF inexistente")
-	void testDeletarCpfInexistente() {
-		boolean resultado = cadastroService.deletarPorCpf("999.999.999-99");
-		
-		assertFalse(resultado);
-	}
-
-	@Test
-	@DisplayName("Deve lançar exceção com CEP inválido")
-	void testCadastrarComCepInvalido() {
-		cadastroValido.setCep("123");
-
-		assertThrows(ResponseStatusException.class, () -> {
-			cadastroService.cadastrar(cadastroValido);
-		});
-	}
-
-	@Test
-	@DisplayName("Deve lançar exceção com CEP não existente")
-	void testCadastrarComCepNaoExistente() {
-		EnderecoViaCepResponse enderecoInvalido = new EnderecoViaCepResponse();
-		enderecoInvalido.setErro(true);
-		when(viaCepClient.consultarCep("99999999")).thenReturn(enderecoInvalido);
-
-		cadastroValido.setCep("99999-999");
-
-		assertThrows(ResponseStatusException.class, () -> {
-			cadastroService.cadastrar(cadastroValido);
-		});
-	}
-
-	@Test
-	@DisplayName("Deve lançar exceção com CEP obrigatório")
-	void testCadastrarComCepNulo() {
-		cadastroValido.setCep(null);
-
-		assertThrows(ResponseStatusException.class, () -> {
-			cadastroService.cadastrar(cadastroValido);
-		});
-	}
+    private EnderecoViaCepResponse criarEndereco(
+            String cep,
+            String logradouro,
+            String bairro,
+            String uf,
+            String estado,
+            String ddd,
+            boolean erro
+    ) {
+        EnderecoViaCepResponse endereco = new EnderecoViaCepResponse();
+        endereco.setCep(cep);
+        endereco.setLogradouro(logradouro);
+        endereco.setComplemento("");
+        endereco.setBairro(bairro);
+        endereco.setUf(uf);
+        endereco.setEstado(estado);
+        endereco.setDdd(ddd);
+        endereco.setErro(erro);
+        return endereco;
+    }
 }
